@@ -5538,7 +5538,7 @@ run(function()
 		end
 		
 		if isMobile then
-			UserInputService.TouchTapInWorld:Connect(function(touchPos)
+			local con = UserInputService.TouchTapInWorld:Connect(function(touchPos)
 				local ray = workspace.CurrentCamera:ScreenPointToRay(touchPos.X, touchPos.Y)
 				local result = workspace:Raycast(ray.Origin, ray.Direction * 1000)
 				if result and result.Instance then
@@ -5546,6 +5546,7 @@ run(function()
 					selectTarget()
 				end
 			end)
+			table.insert(CoreConnections, con)
 		else
 			table.insert(CoreConnections, mouse.Button1Down:Connect(selectTarget))
 		end
