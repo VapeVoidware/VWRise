@@ -2804,10 +2804,15 @@ run(function()
         Name = 'AdetundeExploit',
         Function = function(calling)
             if calling then 
-                -- Check if in testing mode or equipped kit
-                -- if tostring(store.queueType) == "training_room" or store.equippedKit == "adetunde" then
-                --     AdetundeExploit["ToggleButton"](false) 
-                --     current_upgrador = AdetundeExploit_List.Value
+				task.spawn(function()
+					repeat task.wait() until store.equippedKit ~= ""
+					if store.equippedKit ~= "adetunde" then
+						warningNotification("AdetundeExploit", "Adetunde kit required!", 3)
+						if AdetundeExploit.Enabled then
+							AdetundeExploit.ToggleButton(false)
+						end
+					end
+				end)
                 task.spawn(function()
                     repeat
                         local returning_table = adetunde_remotes[current_upgrador]()
