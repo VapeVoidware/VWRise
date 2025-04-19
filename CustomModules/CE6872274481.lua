@@ -1780,6 +1780,13 @@ bedwars.StoreController:registerUpdateIndex(function() bedwars.StoreController:u
 bedwars.StoreController:registerUpdateIndex(function() bedwars.StoreController:executeStoreTable() end, 0.5)
 bedwars.StoreController:registerUpdateIndex(function() if store.equippedKit == "wind_walker" then bedwars.StoreController:updateZephyrOrbe() end end, 0.5)--]]
 
+function bedwars.StoreController:updateQueueType()
+	local att = game:GetService("Workspace"):GetAttribute("QueueType")
+	if att then
+		store.queueType = att
+	end
+end
+
 function bedwars.StoreController:updateStore()
 	task.spawn(function() pcall(function() self:updateLocalHand() end) end)
 	task.wait(0.1)
@@ -1791,14 +1798,18 @@ function bedwars.StoreController:updateStore()
 	task.wait(0.1)
 	task.spawn(function() pcall(function() self:updateStoreBlocks() end) end)
 	task.wait(0.1)
-	task.spawn(function() pcall(function() self:executeStoreTable() end) end)
 	if store.equippedKit == "wind_walker" then
 		task.wait(0.1)
 		task.spawn(function() pcall(function() self:updateZephyrOrb() end) end)
 	end
+	if store.queueType == "bedwars_test" then
+		task.spawn(function() pcall(function() self:updateQueueType() end) end)
+	end
 end
 
-for i, v in pairs({"MatchEndEvent", "EntityDeathEvent", "EntityDamageEvent", "BedwarsBedBreak", "BalloonPopped", "AngelProgress"}) do
+pcall(function() bedwars.StoreController:updateStore() end)
+
+for i, v in pairs({"MatchEndEvent", "EntityDeathEvent", "BedwarsBedBreak", "BalloonPopped", "AngelProgress"}) do
 	bedwars.Client:WaitFor(v):andThen(function(connection)
 		table.insert(vapeConnections, connection:Connect(function(...)
 			vapeEvents[v]:Fire(...)
@@ -2454,6 +2465,8 @@ local function EntityNearPosition(distance, ignore, overridepos)
 
     return closestEntity
 end
+
+shared.EntityNearPosition = EntityNearPosition
 
 local function startEntityTracking()
     for _, conn in pairs(entityCache.connections) do
@@ -10512,7 +10525,7 @@ run(function()
         for _, item in store.localInventory.inventory.items do
             local block = bedwars.ItemTable[item.itemType].block
             if block and isAllowed(item.itemType) then
-                table.insert(blocks, {itemType = item.itemType, health = block.healt, tool = item.tool})
+                table.insert(blocks, {itemType = item.itemType, health = block.health, tool = item.tool})
             end
         end
 
@@ -10730,6 +10743,26 @@ run(function()
 end)
 
 run(function()
+	local uipallet = {
+		Main = Color3.fromRGB(0, 0, 0),
+		Text = Color3.fromRGB(255, 255, 255),
+		Font = Font.fromEnum(Enum.Font.Arial),
+		FontSemiBold = Font.fromEnum(Enum.Font.Arial, Enum.FontWeight.SemiBold),
+		Tween = TweenInfo.new(0.16, Enum.EasingStyle.Linear)
+	}
+	local color = {}
+	do
+		function color.Dark(col, num)
+			local h, s, v = col:ToHSV()
+			return Color3.fromHSV(h, s, math.clamp(select(3, uipallet.Main:ToHSV()) > 0.5 and v + num or v - num, 0, 1))
+		end
+	
+		function color.Light(col, num)
+			local h, s, v = col:ToHSV()
+			return Color3.fromHSV(h, s, math.clamp(select(3, uipallet.Main:ToHSV()) > 0.5 and v - num or v + num, 0, 1))
+		end
+	end
+
 	bedwars.BlockBreaker = {
 		healthbarMaid = {
 			DoCleaning = function(self)
@@ -10752,6 +10785,7 @@ run(function()
 	local blockCache = {}
 	local function customHealthbar(self, blockRef, health, maxHealth, changeHealth, block)
 		if block:GetAttribute('NoHealthbar') then return end
+		bedwars.ItemMeta = bedwars.ItemMeta or bedwars.ItemTable
 		if not bedwars.ItemMeta[block.Name] then return end
 		if not self.healthbarPart or not self.healthbarBlockRef or self.healthbarBlockRef.blockPosition ~= blockRef.blockPosition then
 			self.healthbarMaid:DoCleaning()
@@ -10945,7 +10979,7 @@ run(function()
     end
 
 	local breakBlock = function(pos, effects, normal, bypass, anim)
-		if vape.Modules.InfiniteFly and vape.Modules.InfiniteFly.Enabled then
+		if GuiLibrary.ObjectsThatCanBeSaved.InfiniteFlyOptionsButton and GuiLibrary.ObjectsThatCanBeSaved.InfiniteFlyOptionsButton.Api.Enabled then
 			return
 		end
 		if lplr:GetAttribute("DenyBlockBreak") then
