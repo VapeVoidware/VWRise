@@ -656,7 +656,7 @@ local function coreswitch(tool, ignore)
     local humanoid = character:FindFirstChild("Humanoid")
     if not humanoid then return end
 
-	if not ignore then
+    if not ignore then
 		local currentHandItem
 		for _, acc in character:GetChildren() do
 			if acc:IsA("Accessory") and acc:GetAttribute("InvItem") == true and acc:GetAttribute("ArmorSlot") == nil and acc:GetAttribute("IsBackpack") == nil then
@@ -1908,7 +1908,7 @@ run(function()
                 return store.blockPlacer:placeBlock(Vector3.new(speedCFrame.X / 3, speedCFrame.Y / 3, speedCFrame.Z / 3))
             end
         end,
-		breakBlock = function(pos, effects, normal, bypass, anim, customHealthbar)
+        breakBlock = function(pos, effects, normal, bypass, anim, customHealthbar)
 			if GuiLibrary.ObjectsThatCanBeSaved.InfiniteFlyOptionsButton.Api.Enabled then
 				return
 			end
@@ -2120,7 +2120,7 @@ run(function()
         return not isWhitelistedBed(bedwars.BlockController:getStore():getBlockAt(breakTable.blockPosition)) and OldBreak(self, breakTable, plr)
     end
 
-    local function extractTime(timeText)
+	local function extractTime(timeText)
 		local minutes, seconds = string.match(timeText, "(%d+):(%d%d)")
 		local tbl = {
 			minutes = tonumber(minutes),
@@ -2810,6 +2810,48 @@ run(function()
     end)
 end)
 
+local function Wallcheck(attackerCharacter, targetCharacter, additionalIgnore)
+    if not (attackerCharacter and targetCharacter) then
+        return false
+    end
+
+    local humanoidRootPart = attackerCharacter.PrimaryPart
+    local targetRootPart = targetCharacter.PrimaryPart
+    if not (humanoidRootPart and targetRootPart) then
+        return false
+    end
+
+    local origin = humanoidRootPart.Position
+    local targetPosition = targetRootPart.Position
+    local direction = targetPosition - origin
+
+    local raycastParams = RaycastParams.new()
+    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
+    raycastParams.RespectCanCollide = true
+
+    local ignoreList = {attackerCharacter}
+    
+    if additionalIgnore and typeof(additionalIgnore) == "table" then
+        for _, item in pairs(additionalIgnore) do
+            table.insert(ignoreList, item)
+        end
+    end
+
+    raycastParams.FilterDescendantsInstances = ignoreList
+
+    local raycastResult = workspace:Raycast(origin, direction, raycastParams)
+
+    if raycastResult then
+        if raycastResult.Instance:IsDescendantOf(targetCharacter) then
+            return true
+        else
+            return false
+        end
+    else
+        return true
+    end
+end
+
 run(function()
 	local function isFirstPerson()
 		if not (lplr.Character and lplr.Character:FindFirstChild("Head")) then return nil end
@@ -2852,7 +2894,7 @@ run(function()
 									if store.matchState == 0 then return end
 								end
 								if AimAssistTargetFrame.Walls.Enabled then
-									if not bedwars.SwordController:canSee({instance = plr.Character, player = plr.Player, getInstance = function() return plr.Character end}) then return end
+									if not Wallcheck(lplr.Character, plr.Character) then return end
 								end
 								gameCamera.CFrame = gameCamera.CFrame:lerp(CFrame.new(gameCamera.CFrame.p, plr.Character.HumanoidRootPart.Position), ((1 / AimSpeed.Value) + (AimAssistStrafe.Enabled and (inputService:IsKeyDown(Enum.KeyCode.A) or inputService:IsKeyDown(Enum.KeyCode.D)) and 0.01 or 0)))
 							end
@@ -4488,7 +4530,7 @@ run(function()
 									end
 									local selfrootpos = entityLibrary.character.HumanoidRootPart.Position
 									if killauratargetframe.Walls.Enabled then
-										if not bedwars.SwordController:canSee({player = plr.Player, getInstance = function() return plr.Character end}) then continue end
+										if not Wallcheck(lplr.Character, plr.Character) then continue end
 									end
 									if killauranovape.Enabled and store.whitelist.clientUsers[plr.Player.Name] then
 										continue
@@ -4647,8 +4689,8 @@ run(function()
 	ChargeRatio = Killaura.CreateSlider({
 		Name = "Charge Ratio",
 		Function = function() end,
-		Max = 10,
 		Min = 0,
+		Max = 10,
 		Default = 9
 	})
 	killauraangle = Killaura.CreateSlider({
@@ -5974,48 +6016,6 @@ local function Filter(tbl, check)
 		if check(v) then return v end
 	end
 	return nil
-end
-
-local function Wallcheck(attackerCharacter, targetCharacter, additionalIgnore)
-    if not (attackerCharacter and targetCharacter) then
-        return false
-    end
-
-    local humanoidRootPart = attackerCharacter.PrimaryPart
-    local targetRootPart = targetCharacter.PrimaryPart
-    if not (humanoidRootPart and targetRootPart) then
-        return false
-    end
-
-    local origin = humanoidRootPart.Position
-    local targetPosition = targetRootPart.Position
-    local direction = targetPosition - origin
-
-    local raycastParams = RaycastParams.new()
-    raycastParams.FilterType = Enum.RaycastFilterType.Exclude
-    raycastParams.RespectCanCollide = true
-
-    local ignoreList = {attackerCharacter}
-    
-    if additionalIgnore and typeof(additionalIgnore) == "table" then
-        for _, item in pairs(additionalIgnore) do
-            table.insert(ignoreList, item)
-        end
-    end
-
-    raycastParams.FilterDescendantsInstances = ignoreList
-
-    local raycastResult = workspace:Raycast(origin, direction, raycastParams)
-
-    if raycastResult then
-        if raycastResult.Instance:IsDescendantOf(targetCharacter) then
-            return true
-        else
-            return false
-        end
-    else
-        return true
-    end
 end
 	
 run(function()
@@ -8803,6 +8803,63 @@ run(function()
 	})
 end)
 
+--[[run(function()
+	local performed = false
+	GuiLibrary.ObjectsThatCanBeSaved.RenderWindow.Api.CreateOptionsButton({
+		Name = "UICleanup",
+		Function = function(callback)
+			if callback and not performed then
+				performed = true
+				task.spawn(function()
+					local hotbar = require(lplr.PlayerScripts.TS.controllers.global.hotbar.ui["hotbar-app"]).HotbarApp
+					local hotbaropeninv = require(lplr.PlayerScripts.TS.controllers.global.hotbar.ui["hotbar-open-inventory"]).HotbarOpenInventory
+					local topbarbutton = require(replicatedStorage["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out).TopBarButton
+					local gametheme = require(replicatedStorage["rbxts_include"]["node_modules"]["@easy-games"]["game-core"].out.shared.ui["game-theme"]).GameTheme
+					bedwars.AppController:closeApp("TopBarApp")
+					local oldrender = topbarbutton.render
+					topbarbutton.render = function(self)
+						local res = oldrender(self)
+						if not self.props.Text then
+							return bedwars.Roact.createElement("TextButton", {Visible = false}, {})
+						end
+						return res
+					end
+					hotbaropeninv.render = function(self)
+						return bedwars.Roact.createElement("TextButton", {Visible = false}, {})
+					end
+					gametheme.topBarBGTransparency = 0.5
+					bedwars.TopBarController:mountHud()
+					game:GetService("StarterGui"):SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, true)
+					bedwars.AbilityUIController.abilityButtonsScreenGui.Visible = false
+					bedwars.MatchEndScreenController.waitUntilDisplay = function() return false end
+					task.spawn(function()
+						repeat
+							task.wait()
+							local gui = lplr.PlayerGui:FindFirstChild("StatusEffectHudScreen")
+							if gui then gui.Enabled = false break end
+						until false
+					end)
+					task.spawn(function()
+						repeat task.wait() until store.matchState ~= 0
+						if bedwars.ClientStoreHandler:getState().Game.customMatch == nil then
+							debug.setconstant(bedwars.QueueCard.render, 15, 0.1)
+						end
+					end)
+					local slot = bedwars.ClientStoreHandler:getState().Inventory.observedInventory.hotbarSlot
+					bedwars.ClientStoreHandler:dispatch({
+						type = "InventorySelectHotbarSlot",
+						slot = slot + 1 % 8
+					})
+					bedwars.ClientStoreHandler:dispatch({
+						type = "InventorySelectHotbarSlot",
+						slot = slot
+					})
+				end)
+			end
+		end
+	})
+end)--]]
+
 run(function()
 	local AntiAFK = {Enabled = false}
 	AntiAFK = GuiLibrary.ObjectsThatCanBeSaved.UtilityWindow.Api.CreateOptionsButton({
@@ -8916,6 +8973,31 @@ run(function()
 	})
 end)
 
+local function encode(tbl)
+    return game:GetService("HttpService"):JSONEncode(tbl)
+end
+local function decode(tbl)
+    return game:GetService("HttpService"):JSONDecode(tbl)
+end
+local cache = {}
+local function getItemNear(itemName, inv)
+    inv = inv or store.localInventory.inventory.items
+    if cache[itemName] then
+        local cachedItem, cachedSlot = cache[itemName].item, cache[itemName].slot
+        if inv[cachedSlot] and inv[cachedSlot].itemType == cachedItem.itemType then
+            return cachedItem, cachedSlot
+        else
+            cache[itemName] = nil
+        end
+    end
+    for slot, item in pairs(inv) do
+        if item.itemType == itemName or item.itemType:find(itemName) then
+            cache[itemName] = { item = item, slot = slot }
+            return item, slot
+        end
+    end
+    return nil
+end
 local autobankapple = false
 run(function()
 	local AutoBuy = {Enabled = false}
