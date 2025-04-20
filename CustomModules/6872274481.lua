@@ -2944,7 +2944,7 @@ run(function()
 			if callback then
 				RunLoops:BindToRenderStep("AimAssist", function(dt)
 					vapeTargetInfo.Targets.AimAssist = nil
-					if ((not AimAssistClickAim.Enabled) or (tick() - bedwars.SwordController.lastSwing) < 0.4) then
+					if ((not AimAssistClickAim.Enabled) or (os.clock() - bedwars.SwordController.lastSwing) < 0.4) then
 						local plr = EntityNearPosition(18, IgnoreEntities.Enabled)
 						if plr then
 							if FirstPersonCheck.Enabled then
@@ -3056,7 +3056,10 @@ run(function()
 						if bedwars.DaoController.chargingMaid == nil then
 							task.spawn(function()
 								if firstClick <= tick() then
-									bedwars.SwordController:stopCharging()
+									if bedwars.SwordController:getChargeState() ~= 'IDLE' then
+										bedwars.SwordController:stopCharging(store.hand.tool.Name)
+										bedwars.SwordController.chargingMaid:DoCleaning()
+									end
 									bedwars.SwordController:swingSwordAtMouse(0.25 + math.random() / 8)
 								else
 									firstClick = tick()
@@ -3134,7 +3137,7 @@ run(function()
 			if callback then
 				noclickfunc = bedwars.SwordController.isClickingTooFast
 				bedwars.SwordController.isClickingTooFast = function(self)
-					self.lastSwing = tick()
+					self.lastSwing = os.clock()
 					return false
 				end
 			else
@@ -3151,7 +3154,6 @@ run(function()
 	Reach = GuiLibrary.ObjectsThatCanBeSaved.CombatWindow.Api.CreateOptionsButton({
 		Name = "Reach",
 		Function = function(callback)
-			shared.ReachEnabled = callback
 			bedwars.CombatConstant.RAYCAST_SWORD_CHARACTER_DISTANCE = callback and ReachValue.Value + 2 or 14.4
 		end,
 		HoverText = "Extends attack reach"
@@ -4251,7 +4253,6 @@ run(function()
 	local killauratarget = {Enabled = false}
 	local killaurasound = {Enabled = false}
 	local killauraswing = {Enabled = false}
-	local killaurasync = {Enabled = false}
 	local killaurahandcheck = {Enabled = false}
 	local killauraanimation = {Enabled = false}
 	local killauraanimationtween = {Enabled = false}
@@ -4413,7 +4414,7 @@ run(function()
 			if store.matchState == 0 then return false end
 		end
 		if killauramouse.Enabled then
-			if (tick() - bedwars.SwordController.lastSwing) > 0.1 then return false end
+			if (os.clock() - bedwars.SwordController.lastSwing) > 0.2 then return false end
 			--if not inputService:IsMouseButtonPressed(0) then return false end
 		end
 		if killauragui.Enabled then
@@ -4619,7 +4620,7 @@ run(function()
 											Player = plr.Player
 										}
 										if animationdelay <= tick() then
-											animationdelay = tick() + (swordmeta.sword.respectAttackSpeedForEffects and swordmeta.sword.attackSpeed or (killaurasync.Enabled and 0.24 or 0.14))
+											animationdelay = tick() + (swordmeta.sword.respectAttackSpeedForEffects and swordmeta.sword.attackSpeed or 0.25)
 											if not killauraswing.Enabled then
 												bedwars.SwordController:playSwordEffect(swordmeta, false)
 											end
@@ -5034,11 +5035,6 @@ run(function()
 		HoverText = "Disable's the in and out ease"
 	})
 	killauraanimationtween.Object.Visible = false
-	killaurasync = Killaura.CreateToggle({
-		Name = "Synced Animation",
-		Function = function() end,
-		HoverText = "Times animation with hit attempt"
-	})
 	killauranovape = Killaura.CreateToggle({
 		Name = "No Vape",
 		Function = function() end,
