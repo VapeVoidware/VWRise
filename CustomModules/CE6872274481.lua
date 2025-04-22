@@ -5158,7 +5158,7 @@ run(function()
 	ChargeRatio = Killaura.CreateSlider({
 		Name = "Charge Ratio",
 		Function = function() end,
-		Default = 9,
+		Default = 6.5,
 		Max = 10,
 		Min = 0
 	})
