@@ -4661,7 +4661,7 @@ run(function()
 											targetPosition = attackValue(root.Position),
 											selfPosition = attackValue(selfpos)
 										},
-										lastSwingServerTimeDelta = bedwars.SwordController.lastSwingServerTimeDelta
+										lastSwingServerTimeDelta = lastSwingServerTimeDelta
 									})
 									local spear = getItemNear('spear')
 									if spear then
@@ -4678,7 +4678,7 @@ run(function()
 												targetPosition = attackValue(root.Position),
 												selfPosition = attackValue(selfpos)
 											},
-                                            lastSwingServerTimeDelta = bedwars.SwordController.lastSwingServerTimeDelta
+                                            lastSwingServerTimeDelta = lastSwingServerTimeDelta
 										})
 									end
 									break
