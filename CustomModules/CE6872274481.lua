@@ -246,54 +246,82 @@ local function logRemoteUsage(remoteName, callType)
     end
 end
 
+local remoteThrottleTable = {}
+local REMOTE_THROTTLE_TIME = {
+    SwordHit = 0.1,
+    ChestGetItem = 1.0,
+    SetObservedChest = 0.2,
+    _default = 0.1
+}
+
+local function shouldThrottle(remoteName)
+    local now = tick()
+    local throttleTime = REMOTE_THROTTLE_TIME[remoteName] or REMOTE_THROTTLE_TIME._default
+    if not remoteThrottleTable[remoteName] or now - remoteThrottleTable[remoteName] > throttleTime then
+        remoteThrottleTable[remoteName] = now
+        return false
+    end
+	if shared.VoidDev and shared.ThrottleDebug then
+   	 	warn("[Remote Throttle] Throttled remote call to '" .. tostring(remoteName) .. "' at " .. tostring(now))
+	end
+    return true
+end
+
 local function decorateRemote(remote, src)
-	local isFunction = string.find(string.lower(remote.ClassName), "function")
-	local isEvent = string.find(string.lower(remote.ClassName), "remoteevent")
-	local isBindable = string.find(string.lower(remote.ClassName), "bindable")
+    local isFunction = string.find(string.lower(remote.ClassName), "function")
+    local isEvent = string.find(string.lower(remote.ClassName), "remoteevent")
+    local isBindable = string.find(string.lower(remote.ClassName), "bindable")
 
-	if isFunction then
-		function src:CallServer(...)
-			local args = {...}
+    local function middlewareCall(method, ...)
+        local remoteName = remote.Name
+		local args = {...}
+        if shouldThrottle(remoteName) then
+            return
+        end
+        return method(...)
+    end
+
+    if isFunction then
+        function src:CallServer(...)
 			logRemoteUsage(remote, "InvokeServer")
-			return remote:InvokeServer(unpack(args))
-		end
-	elseif isEvent then
-		function src:CallServer(...)
-			local args = {...}
+            return middlewareCall(function(...) return remote:InvokeServer(...) end, ...)
+        end
+    elseif isEvent then
+        function src:CallServer(...)
 			logRemoteUsage(remote, "FireServer")
-			return remote:FireServer(unpack(args))
-		end
-	elseif isBindable then
-		function src:CallServer(...)
-			local args = {...}
+            return middlewareCall(function(...) return remote:FireServer(...) end, ...)
+        end
+    elseif isBindable then
+        function src:CallServer(...)
 			logRemoteUsage(remote, "BindableFire")
-			return remote:Fire(unpack(args))
-		end
-	end
+            return middlewareCall(function(...) return remote:Fire(...) end, ...)
+        end
+    end
 
-	function src:InvokeServer(...)
-		local args = {...}
-		src:CallServer(unpack(args))
-	end
+    function src:InvokeServer(...)
+        local args = {...}
+        src:CallServer(unpack(args))
+    end
 
-	function src:FireServer(...)
-		local args = {...}
-		src:CallServer(unpack(args))
-	end
+    function src:FireServer(...)
+        local args = {...}
+        src:CallServer(unpack(args))
+    end
 
-	function src:SendToServer(...)
-		local args = {...}
-		src:CallServer(unpack(...))
-	end
+    function src:SendToServer(...)
+        local args = {...}
+        src:CallServer(unpack(args))
+    end
 
-	function src:CallServerAsync(...)
-		local args = {...}
-		src:CallServer(unpack(args))
-	end
+    function src:CallServerAsync(...)
+        local args = {...}
+        src:CallServer(unpack(args))
+    end
 
-	src.instance = remote
+    src.instance = remote
+	src._custom = true
 
-	return src
+    return src
 end
 
 function bedwars.Client:Get(remName, customTable, resRequired)
@@ -376,6 +404,7 @@ bedwars.ItemHandler.getItemMeta = function(item)
     return nil
 end
 bedwars.ItemTable = bedwars.ItemHandler.ItemMeta.items
+bedwars.ItemMeta = bedwars.ItemTable
 bedwars.KitMeta = decode(VoidwareFunctions.fetchCheatEngineSupportFile("KitMeta.json"))
 --decode(readfile("vape/CheatEngine/KitMeta.json"))
 bedwars.ProdAnimationsMeta = decode(VoidwareFunctions.fetchCheatEngineSupportFile("ProdAnimationsMeta.json"))
@@ -4722,7 +4751,33 @@ run(function()
 	--Vector3.new(3, 6, 3)
 	local killauratargetframe = {Players = {Enabled = false}}
 	local killaurasortmethod = {Value = "Distance"}
-	local killaurarealremote = bedwars.Client:Get(bedwars.AttackRemote)
+	local killaurarealremote = {FireServer = function() end}
+	task.spawn(function()
+		killaurarealremote = bedwars.Client:Get(bedwars.AttackRemote)
+		local Reach = Reach or {Enabled = false}
+		local HitBoxes = HitBoxes or {Enabled = false}
+		killaurarealremote.FireServer = function(self, attackTable, ...)
+			local suc, plr = pcall(function()
+				return playersService:GetPlayerFromCharacter(attackTable.entityInstance)
+			end)
+
+			local selfpos = attackTable.validate.selfPosition.value
+			local targetpos = attackTable.validate.targetPosition.value
+			store.attackReach = ((selfpos - targetpos).Magnitude * 100) // 1 / 100
+			store.attackReachUpdate = tick() + 1
+
+			if Reach.Enabled or HitBoxes.Enabled then
+				attackTable.validate.raycast = attackTable.validate.raycast or {}
+				attackTable.validate.selfPosition.value += CFrame.lookAt(selfpos, targetpos).LookVector * math.max((selfpos - targetpos).Magnitude - 14.399, 0)
+			end
+
+			if suc and plr then
+				if not select(2, whitelist:get(plr)) then return end
+			end
+
+			return self:SendToServer(attackTable, ...)
+		end
+	end)
 	local killauramethod = {Value = "Normal"}
 	local killauraothermethod = {Value = "Normal"}
 	local killauraanimmethod = {Value = "Normal"}
@@ -4969,6 +5024,8 @@ run(function()
 		until (not Killaura.Enabled) or (not killauraautoblock.Enabled)
 	end--]]
 
+	local sigridcheck = false
+
 	Killaura = GuiLibrary.ObjectsThatCanBeSaved.BlatantWindow.Api.CreateOptionsButton({
 		Name = "Killaura",
 		Function = function(callback)
@@ -5086,6 +5143,7 @@ run(function()
 						local plrs = {EntityNearPosition(killaurarange.Value, false)}
 						local firstPlayerNear
 						if #plrs > 0 then
+							if sigridcheck and entityLibrary.isAlive and lplr.Character:FindFirstChild("elk") then return end
 							task.spawn(function()
 								pcall(function()
 									--if getItemNear('warlock_staff') then bedwars.WarlockController:link(plrs[1].Character) end
@@ -5573,6 +5631,13 @@ run(function()
 		HoverText = "no hit vape user"
 	})
 	killauranovape.Object.Visible = false
+	Killaura.CreateToggle({
+		Name = "Sigrid Check",
+		Default = false,
+		Function = function(call)
+			sigridcheck = call
+		end
+	})
 end)
 
 local LongJump = {Enabled = false}
@@ -13010,6 +13075,17 @@ run(function()
 			end
 		end,
 		Default = true
+	})
+end)
+
+run(function()
+	local UICleanup
+	local StarterGui = game:GetService("StarterGui")
+	UICleanup = GuiLibrary.ObjectsThatCanBeSaved.WorldWindow.Api.CreateOptionsButton({
+		Name = "UICleanup",
+		Function = function(call)
+			StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.PlayerList, not call)
+		end
 	})
 end)
 
