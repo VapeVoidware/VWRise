@@ -5195,7 +5195,7 @@ run(function()
 	})
 end)
 
-run(function()
+--[[run(function()
 	local old
 	local oldSwing
 	local AutoChargeTime = {Value = 4}
@@ -5250,7 +5250,7 @@ run(function()
 		Default = 4,
 		Function = function() end
 	})
-end)
+end)--]]
 
 local LongJump = {Enabled = false}
 run(function()
