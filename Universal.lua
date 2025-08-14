@@ -5162,6 +5162,13 @@ run(function()
 		Normal = function(ent)
 			local v = nametagsfolderdrawing[ent.Player]
 			if v then
+				if not ent.Humanoid or tonumber(ent.Humanoid.Health) == 0 then
+					pcall(function()
+						nametagsfolderdrawing[ent.Player]:Destroy()
+					end)
+					nametagsfolderdrawing[ent.Player] = nil
+					return
+				end
 				nametagstrs[ent.Player] = whitelist:tag(ent.Player, true)..(NameTagsDisplayName.Enabled and ent.Player.DisplayName or ent.Player.Name)
 				if NameTagsHealth.Enabled then
 					local color = Color3.fromHSV(math.clamp(ent.Humanoid.Health / ent.Humanoid.MaxHealth, 0, 1) / 2.5, 0.89, 1)
@@ -5178,6 +5185,13 @@ run(function()
 		Drawing = function(ent)
 			local v = nametagsfolderdrawing[ent.Player]
 			if v then
+				if not ent.Humanoid or tonumber(ent.Humanoid.Health) == 0 then
+					pcall(function()
+						nametagsfolderdrawing[ent.Player]:Destroy()
+					end)
+					nametagsfolderdrawing[ent.Player] = nil
+					return
+				end
 				nametagstrs[ent.Player] = whitelist:tag(ent.Player, true)..(NameTagsDisplayName.Enabled and ent.Player.DisplayName or ent.Player.Name)
 				if NameTagsHealth.Enabled then
 					nametagstrs[ent.Player] = nametagstrs[ent.Player]..' '..math.round(ent.Humanoid.Health)
