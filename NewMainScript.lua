@@ -91,6 +91,7 @@ local RiseMode = true
 local baseDirectory = RiseMode and "rise/" or "vape/"
 if (not isfolder('vape')) then makefolder('vape') end
 if (not isfolder('rise')) then makefolder('rise') end
+if shared.ForceDisableCE then CheatEngineMode = false; shared.CheatEngineMode = false end
 shared.CheatEngineMode = shared.CheatEngineMode or CheatEngineMode
 local errorPopupShown = false
 local setidentity = syn and syn.set_thread_identity or set_thread_identity or setidentity or setthreadidentity or function() end
