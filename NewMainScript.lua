@@ -591,7 +591,7 @@ end)
 local url = RiseMode and "https://github.com/VapeVoidware/VWRise/" or "https://github.com/VapeVoidware/VoidwareBakup"
 local commit = "main"
 writefile(baseDirectory.."commithash2.txt", commit)
-commit = '8c0682272a3be2173ccf80188df6163308cedc49'
+commit = '3a1f91534921987ca8c49058b87cae5e37f437dd'
 commit = shared.CustomCommit and tostring(shared.CustomCommit) or commit
 writefile(baseDirectory.."commithash2.txt", commit)
 pcall(function()
