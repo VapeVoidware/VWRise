@@ -11,9 +11,13 @@ task.spawn(function()
 end)
 local CheatEngineMode = false
 if (not getgenv) or (getgenv and type(getgenv) ~= "function") then CheatEngineMode = true end
-if getgenv and not getgenv().shared then CheatEngineMode = true; getgenv().shared = {}; end
-if getgenv and not getgenv().debug then CheatEngineMode = true; getgenv().debug = {traceback = function(string) return string end} end
-if getgenv and not getgenv().require then CheatEngineMode = true; end
+if getgenv and not getgenv().shared then CheatEngineMode = true
+getgenv().shared = {}
+end
+if getgenv and not getgenv().debug then CheatEngineMode = true
+getgenv().debug = {traceback = function(string) return string end} end
+if getgenv and not getgenv().require then CheatEngineMode = true
+end
 if getgenv and getgenv().require and type(getgenv().require) ~= "function" then CheatEngineMode = true end
 local debugChecks = {
     Type = "table",
@@ -96,7 +100,8 @@ local RiseMode = true
 local baseDirectory = RiseMode and "rise/" or "vape/"
 if (not isfolder('vape')) then makefolder('vape') end
 if (not isfolder('rise')) then makefolder('rise') end
-if shared.ForceDisableCE then CheatEngineMode = false; shared.CheatEngineMode = false end
+if shared.ForceDisableCE then CheatEngineMode = false
+shared.CheatEngineMode = false end
 shared.CheatEngineMode = shared.CheatEngineMode or CheatEngineMode
 local errorPopupShown = false
 local setidentity = syn and syn.set_thread_identity or set_thread_identity or setidentity or setthreadidentity or function() end
@@ -593,6 +598,7 @@ local commit = "main"
 writefile(baseDirectory.."commithash2.txt", commit)
 commit = 'af8595bfff2cc8935ddd502d828342c7025e8e2a'
 commit = shared.CustomCommit and tostring(shared.CustomCommit) or commit
+shared.VOIDWARE_SCRIPT_TYPE = "BEDWARS_RISE"
 writefile(baseDirectory.."commithash2.txt", commit)
 pcall(function()
     if not isfile("vape/assetversion.txt") then
@@ -646,7 +652,8 @@ local function pload(fileName, isImportant, required)
     local res = vapeGithubRequest(fileName, isImportant)
     local a = loadstring(res)
     local suc, err = true, ""
-    if type(a) ~= "function" then suc = false; err = tostring(a) else if required then return a() else a() end end
+    if type(a) ~= "function" then suc = false
+err = tostring(a) else if required then return a() else a() end end
     if (not suc) then 
         if isImportant then
             if (not string.find(string.lower(err), "vape already injected")) and (not string.find(string.lower(err), "rise already injected")) then
